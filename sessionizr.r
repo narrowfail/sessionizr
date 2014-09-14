@@ -1,6 +1,6 @@
 #Robot detection function
-detectarRobot <- function(unaCadena){
-  listaBots <- c("googlebot",
+detectRobots <- function(someString){
+  botsList <- c("googlebot",
                  "slurp",
                  "YandexBot",
                  "ia_archiver",
@@ -16,8 +16,8 @@ detectarRobot <- function(unaCadena){
                  "msnbot",
                  "robot"
   )
-  for(bot in listaBots){
-    rgrep <- any(grep(bot, unaCadena, ignore.case = TRUE))
+  for(bot in botsList){
+    rgrep <- any(grep(bot, someString, ignore.case = TRUE))
     if (rgrep == TRUE){
       return(1)
     }
@@ -40,28 +40,29 @@ matches<-function(x, m) {
 }
 
 #Log loading function
-cargarTabla <- function(unArchivo){
-  datos<-matrix(nrow=0,ncol=11)
-  colnames(datos) <- c("session","ip","user","frank","date", "method", "resource", "status", "bytes", "referer", "userAgent")
-  con  <- file(unArchivo, open = "r")
-  contador <- 0
-  while (length(linea <- readLines(con, n = 1, warn = FALSE)) > 0) {
-    vector <- gregexpr('(\\S+)(, )?(\\S+)? \\S+ \\S+ \\[([^\\]]+)\\] "(\\w+)\\s([^"]*)" (\\d+)\\s?(\\d+)?\\s?("[^"]*")?\\s?("[^"]*")?', linea, perl=TRUE)
-    resultado <- matches(linea, vector)
-    ip <- resultado[[1]][1]
-    user <- resultado[[1]][2]
-    frank <- resultado[[1]][3]
-    date <- resultado[[1]][4]
-    method <- resultado[[1]][5]
-    resource <- resultado[[1]][6]
-    status <- resultado[[1]][7]
-    bytes <- resultado[[1]][8]
-    referer <- resultado[[1]][9]
-    userAgent <- resultado[[1]][10]
-    contador <- contador + 1
-    print(paste("Processing line:", contador))
-    if (!detectarRobot(linea)){
-      datos <- rbind(datos, c(0, ip, user, frank, date, method, resource,
+loadData <- function(fileIn){
+  data <- matrix(nrow=0,ncol=11)
+  colnames(data) <- c("session","ip","user","frank","date", "method", 
+                       "resource", "status", "bytes", "referer", "userAgent")
+  con <- file(fileIn, open = "r")
+  counter <- 0
+  while (length(line <- readLines(con, n = 1, warn = FALSE)) > 0) {
+    vector <- gregexpr('(\\S+)(, )?(\\S+)? \\S+ \\S+ \\[([^\\]]+)\\] "(\\w+)\\s([^"]*)" (\\d+)\\s?(\\d+)?\\s?("[^"]*")?\\s?("[^"]*")?', line, perl=TRUE)
+    result <- matches(line, vector)
+    ip <- result[[1]][1]
+    user <- result[[1]][2]
+    frank <- result[[1]][3]
+    date <- result[[1]][4]
+    method <- result[[1]][5]
+    resource <- result[[1]][6]
+    status <- result[[1]][7]
+    bytes <- result[[1]][8]
+    referer <- result[[1]][9]
+    userAgent <- result[[1]][10]
+    counter <- counter + 1
+    print(paste("Processing line:", counter))
+    if (!detectRobots(line)){
+      data <- rbind(data, c(0, ip, user, frank, date, method, resource,
                               status, bytes, referer, userAgent
                               )
                     )
@@ -71,29 +72,30 @@ cargarTabla <- function(unArchivo){
     }
   }
   close(con)
-  return(datos)
+  return(data)
 }
 
 #Session recognition function
-identficarSesiones<-function(unaMatriz, unTiempo) {
-  unaMatriz[order(unaMatriz[,"ip"], unaMatriz[,"userAgent"]),]
-  for(i in 1:(nrow(unaMatriz)-1)) {
-    fecha1 <- strptime(unaMatriz[i,5], "%d/%b/%Y:%H:%M:%S %z", tz="UTC")
-    fecha2 <- strptime(unaMatriz[i+1,5], "%d/%b/%Y:%H:%M:%S %z", tz="UTC")
+findSessions<-function(data, timeout) {
+  data[order(data[,"ip"], data[,"userAgent"]),]
+  for(i in 1:(nrow(data)-1)) {
+    date1 <- strptime(data[i,5], "%d/%b/%Y:%H:%M:%S %z", tz="UTC")
+    date2 <- strptime(data[i+1,5], "%d/%b/%Y:%H:%M:%S %z", tz="UTC")
     
     #Custom resource timeout:
-    #unTiempo <- determinarTimeout(unaMatriz[,"resource"])
+    #timeout <- determinarTimeout(data[,"resource"])
     
-    if(unaMatriz[i+1,2] == unaMatriz[i,2] & unaMatriz[i+1,11] == unaMatriz[i,11] & difftime(fecha2, fecha1, units="mins") < unTiempo)
+    if(data[i+1,2] == data[i,2] & data[i+1,11] == data[i,11]
+       & difftime(date2, date1, units="mins") < timeout)
     {      
-      unaMatriz[i+1,1] <- unaMatriz[i,1]
+      data[i+1,1] <- data[i,1]
     }
     else
     {
-      unaMatriz[i+1,1] <- as.integer(unaMatriz[i,1]) + 1 
+      data[i+1,1] <- as.integer(data[i,1]) + 1 
     }
   }
-  return(unaMatriz)
+  return(data)
 }
 
 #Custom resource timeout function
@@ -123,21 +125,22 @@ identficarSesiones<-function(unaMatriz, unTiempo) {
 #}
 
 #Main function
-sessionizer<-function(unArchivoEntrada, unArchivoSalida, timeout) {
-  print(paste("Loading File:", unArchivoEntrada))
-  matriz <- cargarTabla(unArchivoEntrada);
+sessionizer<-function(inputFile, outputFile, timeout) {
+  print(paste("Loading File:", inputFile))
+  matrix <- loadData(inputFile);
   print("Creating sessions ...")
-  resultado <- identficarSesiones(matriz, timeout);
-  print(paste("Writing file:", unArchivoSalida))
-  write.table(resultado, unArchivoSalida, col.names = TRUE, row.names = FALSE, sep = " ", quote = FALSE)
+  result <- findSessions(matrix, timeout);
+  print(paste("Writing file:", outputFile))
+  write.table(result, outputFile, col.names = TRUE, row.names = FALSE,
+              sep = " ", quote = FALSE)
   print("Finished!")
 }
 
 #Demo
-archivoEntrada <- "D:/100.log"
-archivoSalida <- "D:/output.txt"
+inputFile <- "D:/100.log"
+outputFile <- "D:/output.txt"
 timeout <- 5 #5 min timeout
-sessionizer(archivoEntrada, archivoSalida, timeout)
+sessionizer(inputFile, outputFile, timeout)
 
 
 

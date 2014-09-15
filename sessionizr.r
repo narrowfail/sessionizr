@@ -23,7 +23,6 @@ matches<-function(x, m) {
         return(character())
     }
     substring(u, so, so + ml - 1L)
-    
   }, x, m, USE.NAMES = FALSE)
 }
 

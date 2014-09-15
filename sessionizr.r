@@ -1,21 +1,9 @@
 #Robot detection function
 detectRobots <- function(someString){
-  botsList <- c("googlebot",
-                 "slurp",
-                 "YandexBot",
-                 "ia_archiver",
-                 "bingbot",
-                 "Baiduspider",
-                 "yacybot",
-                 "YodaoBot",
-                 "Ezooms",
-                 "MJ12bot",
-                 "OpenindexSpider",
-                 "Ask Jeeves",
-                 "DuckDuckBot",
-                 "msnbot",
-                 "robot"
-  )
+  botsList <- c("googlebot", "slurp", "YandexBot", "ia_archiver", "bingbot",
+                 "Baiduspider", "yacybot", "YodaoBot", "Ezooms", "MJ12bot",
+                 "OpenindexSpider", "Ask Jeeves", "DuckDuckBot", "msnbot",
+                 "robot")
   for(bot in botsList){
     rgrep <- any(grep(bot, someString, ignore.case = TRUE))
     if (rgrep == TRUE){
@@ -141,11 +129,3 @@ inputFile <- "D:/100.log"
 outputFile <- "D:/output.txt"
 timeout <- 5 #5 min timeout
 sessionizer(inputFile, outputFile, timeout)
-
-
-
-
-
-
-
-
